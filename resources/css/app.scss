@@ -1,0 +1,12 @@
+$font-family-base: Shabnam;
+
+@import "~bootstrap/scss/bootstrap";
+@import "shabnam";
+
+.container {
+    max-width: 960px;
+}
+
+.table-lg.table > :not(caption) > * > * {
+    padding: 1.25rem 0.5rem;
+}

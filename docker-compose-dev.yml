@@ -1,0 +1,75 @@
+version: '3.7'
+services:
+  mysql:
+    image: 'mysql:8.0'
+    ports:
+      - '${DB_FORWARD_PORT:-3306}:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - '${MYSQL_DATA_PATH}:/var/lib/mysql'
+    restart: unless-stopped
+    container_name: ecd-gateway.mysql
+    networks:
+      - backend
+      - frontend
+      - default
+  redis:
+    image: 'redis:4'
+    volumes:
+      - '${REDIS_DATA_PATH}:/data'
+    container_name: ecd-gateway.redis
+    restart: unless-stopped
+  nginx:
+    build:
+      context: ./docker-services/nginx
+      args:
+        - PHP_UPSTREAM_SERVICE=ecd-gateway.php-fpm
+    volumes:
+      - '.:/var/www/ecd-gateway'
+    restart: unless-stopped
+    container_name: ecd-gateway.nginx
+    ports:
+      - '${APP_PORT:-80}:80'
+    networks:
+      - backend
+      - default
+  php-fpm:
+    build:
+      context: ./docker-services/php-fpm
+      args:
+        - INSTALL_XDEBUG=true
+    volumes:
+      - '.:/var/www/ecd-gateway'
+      - './docker-services/php-fpm/php.ini:/usr/local/etc/php/php.ini'
+      - './docker-services/php-fpm/pool.conf:/usr/local/etc/php-fpm.d/pool.conf'
+      - './docker-services/php-fpm/www.conf:/usr/local/etc/php-fpm.d/www.conf'
+    restart: unless-stopped
+    environment:
+      - PHP_IDE_CONFIG=serverName=ECD-Gateway-App
+    container_name: ecd-gateway.php-fpm
+    networks:
+      - backend
+      - default
+  node:
+    build:
+      context: ./docker-services/node
+    volumes:
+      - '.:/var/www/app'
+    restart: unless-stopped
+    container_name: ecd-gateway.node
+    ports:
+      - '3000:3000'
+    networks:
+      - backend
+      - frontend
+      - default
+networks:
+  backend:
+    name: ecd-gateway_backend
+  frontend:
+    name: ecd-gateway_fronend
